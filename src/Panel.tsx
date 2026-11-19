@@ -5,7 +5,9 @@
 // It edits whatever useParamScope hands it: the photo's bag in the dock, a
 // mask's in the Masking panel. A drag writes the value and the draw count
 // live and commits on release, so one gesture is one undo step; each change
-// reads the bag the scope holds now, as drags outrun renders.
+// reads the bag the scope holds now, as drags outrun renders. The sliders that
+// only shape the change say so in a tooltip on their label, as the module does
+// nothing until a gain moves.
 
 import { DEFAULT_PARAMS, SOFT_RANGES, drawCount, type Params } from "./model";
 import { DRAWS_KEY, qualified, readParams } from "./params";
@@ -17,12 +19,15 @@ interface Control {
   /** Shown value per stored unit (100 for a percentage). */
   factor: number;
   step: number;
+  tip?: string;
 }
 
-const control = (key: keyof Params, label: string, factor = 1, step = 0.01): Control => ({ key, label, factor, step });
+const control = (key: keyof Params, label: string, factor = 1, step = 0.01, tip?: string): Control => ({ key, label, factor, step, tip });
+
+const shapes = (what: string) => `${what} Does nothing while Coarse, Medium, Fine, Highlights and Shadows are all 0.`;
 
 const BASE: Control[] = [
-  control("detailLevel", "Detail level"),
+  control("detailLevel", "Detail level", 1, 0.01, shapes("The size of detail the other sliders work on.")),
   control("highlights", "Highlights"),
   control("shadows", "Shadows"),
 ];
@@ -31,7 +36,10 @@ const BANDS: Control[] = [
   control("medium", "Medium", 100, 1),
   control("fine", "Fine", 100, 1),
 ];
-const FILTER: Control[] = [control("haloControl", "Halo control", 100, 1), control("noiseBias", "Noise bias", 1, 0.0001)];
+const FILTER: Control[] = [
+  control("haloControl", "Halo control", 100, 1, shapes("Higher holds edges more strictly, so no halos.")),
+  control("noiseBias", "Noise bias", 1, 0.0001, shapes("Keeps shadow noise from being boosted as detail.")),
+];
 
 export function ContrastTexturePanel() {
   const { Slider } = api.components;
@@ -41,7 +49,7 @@ export function ContrastTexturePanel() {
 
   const slider = (c: Control) => {
     const range = SOFT_RANGES[c.key];
-    return (
+    const element = (
       <Slider
         key={c.key}
         label={c.label}
@@ -56,6 +64,13 @@ export function ContrastTexturePanel() {
         }}
         onCommit={() => scope.commit(`Contrast & Texture ${c.label.toLowerCase()}`)}
       />
+    );
+    return c.tip ? (
+      <div key={c.key} title={c.tip}>
+        {element}
+      </div>
+    ) : (
+      element
     );
   };
 

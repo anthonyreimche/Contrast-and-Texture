@@ -68,4 +68,14 @@ describe("the panel", () => {
     act(() => slider("Shadows").onChange(0));
     expect(rig.params()[qualified("draws")]).toBe(0);
   });
+
+  it("tells, on the sliders that only shape the change, that they need a gain", () => {
+    const { view } = setup();
+    const tip = (label: string) =>
+      [...view.container.querySelectorAll("[data-slider]")].find((el) => el.textContent?.startsWith(`${label} `))?.closest("[title]")?.getAttribute("title") ?? null;
+    for (const label of ["Detail level", "Halo control", "Noise bias"]) {
+      expect(tip(label)).toMatch(/Does nothing while Coarse, Medium, Fine, Highlights and Shadows are all 0/);
+    }
+    for (const label of ["Highlights", "Shadows", "Coarse", "Medium", "Fine"]) expect(tip(label)).toBeNull();
+  });
 });

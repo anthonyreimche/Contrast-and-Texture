@@ -158,24 +158,24 @@ function j(e) {
 }
 //#endregion
 //#region src/Panel.tsx
-var M = (e, t, n = 1, r = .01) => ({
+var M = (e, t, n = 1, r = .01, i) => ({
 	key: e,
 	label: t,
 	factor: n,
-	step: r
-}), N = [
-	M("detailLevel", "Detail level"),
+	step: r,
+	tip: i
+}), N = (e) => `${e} Does nothing while Coarse, Medium, Fine, Highlights and Shadows are all 0.`, P = [
+	M("detailLevel", "Detail level", 1, .01, N("The size of detail the other sliders work on.")),
 	M("highlights", "Highlights"),
 	M("shadows", "Shadows")
-], P = [
+], F = [
 	M("coarse", "Coarse", 100, 1),
 	M("medium", "Medium", 100, 1),
 	M("fine", "Fine", 100, 1)
-], F = [M("haloControl", "Halo control", 100, 1), M("noiseBias", "Noise bias", 1, 1e-4)];
-function I() {
+], I = [M("haloControl", "Halo control", 100, 1, N("Higher holds edges more strictly, so no halos.")), M("noiseBias", "Noise bias", 1, 1e-4, N("Keeps shadow noise from being boosted as detail."))];
+function L() {
 	let { Slider: t } = A.components, { Section: r } = A.ui, i = A.develop.useParamScope(), a = T(i.getParams()), o = (r) => {
-		let o = n[r.key];
-		return /* @__PURE__ */ k.createElement(t, {
+		let o = n[r.key], s = /* @__PURE__ */ k.createElement(t, {
 			key: r.key,
 			label: r.label,
 			value: a[r.key] * r.factor,
@@ -195,12 +195,16 @@ function I() {
 			},
 			onCommit: () => i.commit(`Contrast & Texture ${r.label.toLowerCase()}`)
 		});
+		return r.tip ? /* @__PURE__ */ k.createElement("div", {
+			key: r.key,
+			title: r.tip
+		}, s) : s;
 	};
-	return /* @__PURE__ */ k.createElement("div", { style: { padding: 8 } }, N.map(o), /* @__PURE__ */ k.createElement(r, { title: "Local contrast" }, P.map(o)), /* @__PURE__ */ k.createElement(r, { title: "Filter" }, F.map(o)));
+	return /* @__PURE__ */ k.createElement("div", { style: { padding: 8 } }, P.map(o), /* @__PURE__ */ k.createElement(r, { title: "Local contrast" }, F.map(o)), /* @__PURE__ */ k.createElement(r, { title: "Filter" }, I.map(o)));
 }
 //#endregion
 //#region src/glsl.ts
-function L(e) {
+function R(e) {
 	let t = e.toPrecision(10);
 	if (/e/i.test(t)) {
 		let [e, n] = t.split(/e/i);
@@ -208,7 +212,7 @@ function L(e) {
 	}
 	return t.includes(".") ? t.replace(/0+$/, "").replace(/\.$/, ".0") : `${t}.0`;
 }
-var R = L, z = R(2 ** -16), B = `
+var z = R, B = z(2 ** -16), V = `
 vec4 ctxAt(ivec2 t) { return fetchPrev4(t); }
 // 2^-n for a whole n, exactly, whatever the driver's exp2.
 float ctxPow2(int n) { return intBitsToFloat((127 - n) << 23); }
@@ -230,7 +234,7 @@ float ctxRadius(float base, int level) { return base * ctxPow2(level); }
 int ctxMaxLevel(float base) {
   float r = base;
   for (int l = 0; l < 20; l++) {
-    if (r < ${R(2)}) return l;
+    if (r < ${z(2)}) return l;
     r *= 0.5;
   }
   return 19;
@@ -263,7 +267,7 @@ int ctxScanLevels(float base) {
 // taps: ceil(log2(SCAN_REACH * dsSigma / 1.695)). The grid's sigma halves a
 // level, so it is the coarsest level's count less the level. Every draw works
 // the schedule out per texel; this keeps it to integer steps and one log2.
-int ctxSteps0(float base) { return int(ceil(log2(${R(u / 6.78)} * base))); }
+int ctxSteps0(float base) { return int(ceil(log2(${z(u / 6.78)} * base))); }
 int ctxSteps(int level, int scanLevels, int steps0) {
   return level < scanLevels ? clamp(steps0 - level, 1, 16) : 0;
 }
@@ -279,9 +283,9 @@ float ctxBand(int band, int level) {
   float m = ctxMaxDetail();
   float t = m == 0.0 ? 0.5 : float(level) / m - 0.5;
   t = clamp(t, -0.5, 0.5);
-  float w = band == 0 ? (t < 0.0 ? sin(${R(Math.PI)} * t) : 0.0)
-          : band == 1 ? cos(${R(Math.PI)} * t)
-          : (t >= 0.0 ? sin(${R(Math.PI)} * t) : 0.0);
+  float w = band == 0 ? (t < 0.0 ? sin(${z(Math.PI)} * t) : 0.0)
+          : band == 1 ? cos(${z(Math.PI)} * t)
+          : (t >= 0.0 ? sin(${z(Math.PI)} * t) : 0.0);
   return w * w;
 }
 float ctxGain(int level) {
@@ -363,8 +367,8 @@ void ctxTaps(int j, int n, int m, out int lo, out int hi, out float wLo, out flo
 }
 // The guided filter's mean and variance at a grid texel.
 vec2 ctxStats(ivec2 t) {
-  vec2 s = ctxStatsAt(t) / ${R(8)};
-  return vec2(s.x, s.y / ${R(8)} - s.x * s.x);
+  vec2 s = ctxStatsAt(t) / ${z(8)};
+  return vec2(s.x, s.y / ${z(8)} - s.x * s.x);
 }
 // darktable's Deriche coefficients (gaussian.c, order 0): a0..a3, and r = e^−α.
 void ctxDeriche(float sigma, out vec4 a, out float r) {
@@ -375,7 +379,7 @@ void ctxDeriche(float sigma, out vec4 a, out float r) {
   a = vec4(k, k * (alpha - 1.0) * ema, k * (alpha + 1.0) * ema, -k * ema2);
   r = ema;
 }
-`, V = "return ctxRegion();", H = `
+`, H = "return ctxRegion();", U = `
 ivec2 q = ivec2(gl_FragCoord.xy);
 ivec2 size = ivec2(floor(1.0 / uTexel + 0.5));
 int level, phase, maxLevel, total;
@@ -388,7 +392,7 @@ int steps = ctxSteps(level, ctxScanLevels(base), ctxSteps0(base));
 int blur = ctxBlurDraws(steps);
 if (level == -1) {
   // compute_luminance(): the RGB norm over sqrt(3), plus the finest level's bias.
-  float lum = max(length(c.rgb), ${z}) * ${R(1 / Math.sqrt(3))} + ctxNoiseBias(maxLevel);
+  float lum = max(length(c.rgb), ${B}) * ${z(1 / Math.sqrt(3))} + ctxNoiseBias(maxLevel);
   c = vec4(0.0, 0.0, lum, 0.0);
 } else if (level >= 0) {
   if (phase == 0) {
@@ -400,7 +404,7 @@ if (level == -1) {
       ctxTaps(q.y, ds.y, size.y, y0, y1, wy0, wy1);
       float v = wy1 * (ctxAt(ivec2(x0, y1)).z * wx0 + ctxAt(ivec2(x1, y1)).z * wx1)
               + wy0 * (ctxAt(ivec2(x0, y0)).z * wx0 + ctxAt(ivec2(x1, y0)).z * wx1);
-      float s = v * ${R(8)};
+      float s = v * ${z(8)};
       c.xy = vec2(s, s);
     }
   } else if (phase <= blur) {
@@ -476,43 +480,43 @@ if (level == -1) {
     vec2 st = wy1 * (ctxStats(ivec2(x0, y1)) * wx0 + ctxStats(ivec2(x1, y1)) * wx1)
             + wy0 * (ctxStats(ivec2(x0, y0)) * wx0 + ctxStats(ivec2(x1, y0)) * wx1);
     float lum = c.z;
-    float feather = ${R(.2)} * exp2(-haloControl);
+    float feather = ${z(.2)} * exp2(-haloControl);
     float norm = max(st.x * lum, 1.0e-6);
     // Half-float statistics can leave the variance a little below 0, where
     // darktable's float32 has it at about 0.
     float v = max(st.y / norm, 0.0);
     float k = v / (v + feather);
-    float smoothed = max(lum * k + (st.x - k * st.x), ${z});
+    float smoothed = max(lum * k + (st.x - k * st.x), ${B});
     float bias = ctxNoiseBias(level);
     float power = smoothed * smoothed;
-    float wiener = max(power - bias * bias, 0.0) / max(power, ${z});
-    float detail = clamp(log2(max(lum, ${z})) - log2(max(smoothed, ${z})), -5.0, 5.0);
+    float wiener = max(power - bias * bias, 0.0) / max(power, ${B});
+    float detail = clamp(log2(max(lum, ${B})) - log2(max(smoothed, ${B})), -5.0, 5.0);
     float sum = c.w + ctxGain(level) * (wiener * detail);
     if (level > 0) {
       c = vec4(0.0, 0.0, smoothed - (bias - ctxNoiseBias(level - 1)), sum);
     } else {
-      c = vec4(sum, smoothed, log2(bias + ${R(i)}), 0.0);
+      c = vec4(sum, smoothed, log2(bias + ${z(i)}), 0.0);
     }
   }
 }
-`, U = R(r), W = `
+`, W = z(r), G = `
 if (draws > 0) {
-  float ev = log2(max(stageResult.y, ${z})) - stageResult.z;
+  float ev = log2(max(stageResult.y, ${B})) - stageResult.z;
   float slopeShadows = exp2(-shadows);
   float slopeHighlights = exp2(highlights);
   float curve;
-  if (ev <= -${U}) {
+  if (ev <= -${W}) {
     curve = slopeShadows * ev;
-  } else if (ev >= ${U}) {
+  } else if (ev >= ${W}) {
     curve = slopeHighlights * ev;
   } else {
-    float shifted = ev + ${U};
-    curve = -slopeShadows * ${U} + slopeShadows * shifted
-          + (slopeHighlights - slopeShadows) / (4.0 * ${U}) * shifted * shifted;
+    float shifted = ev + ${W};
+    curve = -slopeShadows * ${W} + slopeShadows * shifted
+          + (slopeHighlights - slopeShadows) / (4.0 * ${W}) * shifted * shifted;
   }
   lin *= exp2(stageResult.x + (curve - ev));
 }
-`, G = {
+`, K = {
 	coarse: "Coarse",
 	medium: "Medium",
 	fine: "Fine",
@@ -521,7 +525,7 @@ if (draws > 0) {
 	noiseBias: "Noise bias",
 	shadows: "Shadows",
 	highlights: "Highlights"
-}, K = (n) => ({
+}, q = (n) => ({
 	key: n,
 	glslType: "float",
 	default: e[n],
@@ -529,20 +533,20 @@ if (draws > 0) {
 		...t[n],
 		step: n === "noiseBias" ? 1e-4 : .01
 	},
-	label: G[n]
-}), q = {
+	label: K[n]
+}), J = {
 	key: S,
 	glslType: "int",
 	default: 0
-}, J = [
+}, Y = [
 	"coarse",
 	"medium",
 	"fine",
 	"detailLevel",
 	"haloControl",
 	"noiseBias"
-], Y = ["shadows", "highlights"];
-function X() {
+], X = ["shadows", "highlights"];
+function Z() {
 	return {
 		id: b,
 		name: "Contrast & Texture",
@@ -553,18 +557,18 @@ function X() {
 			encoding: "linear",
 			primaries: "rec2020"
 		},
-		glsl: W,
-		uniforms: [...Y.map(K), q],
+		glsl: G,
+		uniforms: [...X.map(q), J],
 		passes: [{
 			channels: 4,
-			glsl: H,
-			helpers: B,
-			region: V,
+			glsl: U,
+			helpers: V,
+			region: H,
 			iterations: {
 				key: S,
 				max: s
 			},
-			uniforms: J.map(K)
+			uniforms: Y.map(q)
 		}],
 		dormantWhen: {
 			coarse: 0,
@@ -578,27 +582,27 @@ function X() {
 }
 //#endregion
 //#region src/index.tsx
-var Z = `${y}.panel`, Q = null;
-function $() {
+var Q = `${y}.panel`, $ = null;
+function ee() {
 	let e = A.stores.useDevelopStore.getState();
 	e.setDynParams(O()), e.commitEdit("Contrast & Texture reset");
 }
-function ee(e) {
-	j(e), e.registerProcessingStage(X()), e.registerPanel({
-		id: Z,
+function te(e) {
+	j(e), e.registerProcessingStage(Z()), e.registerPanel({
+		id: Q,
 		title: "Contrast & Texture",
-		component: I,
+		component: L,
 		defaultDock: {
 			module: "develop",
 			direction: "right",
 			width: 280
 		},
-		onReset: $,
+		onReset: ee,
 		mask: {
-			component: I,
+			component: L,
 			owns: [...x.map(C), C(S)]
 		}
-	}), Q?.(), Q = e.stores.useDevelopStore.subscribe((e, t) => {
+	}), $?.(), $ = e.stores.useDevelopStore.subscribe((e, t) => {
 		if (e.params.masks !== t.params.masks) for (let n of e.params.masks) {
 			if (t.params.masks.some((e) => e.id === n.id && e.bag === n.bag)) continue;
 			let r = n.bag ? D(n.bag) : null;
@@ -609,10 +613,10 @@ function ee(e) {
 		n && e.setDynParams(n);
 	});
 }
-function te() {
-	Q?.(), Q = null;
+function ne() {
+	$?.(), $ = null;
 }
 //#endregion
-export { Z as PANEL_ID, ee as activate, te as deactivate };
+export { Q as PANEL_ID, te as activate, ne as deactivate };
 
 //# sourceMappingURL=index.js.map
