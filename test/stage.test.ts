@@ -76,6 +76,23 @@ describe("a draw's cost", () => {
     expect(PASS_GLSL).toContain("ctxSchedule(size, level, phase, maxLevel, total);");
   });
 
+  // The programs' ints are mediump unless declared highp: 16 bits where the
+  // driver honours precision (Mesa behind ANGLE's GLES backend), which
+  // scrambles a float's 32 bits.
+  it("holds a float's bits in highp ints", () => {
+    const src = [PASS_HELPERS, PASS_GLSL, INLINE_GLSL].join("\n").replace(/\/\/[^\n]*/g, " ");
+    const fromBits = [...src.matchAll(/\bu?intBitsToFloat\s*\(([^;]*);/g)];
+    expect(fromBits.length).toBeGreaterThan(0);
+    for (const { 1: arg, index } of fromBits) {
+      expect(arg).not.toMatch(/\bu?int\s*\(/);
+      for (const [name] of arg.matchAll(/\b[A-Za-z_]\w*\b(?!\s*\()/g)) {
+        // The nearest declaration above the use is the one in scope.
+        const declared = [...src.slice(0, index).matchAll(new RegExp(`(highp\\s+)?\\bu?int\\s+${name}\\s*[=;,)]`, "g"))].at(-1);
+        if (declared) expect({ name, highp: Boolean(declared[1]) }).toEqual({ name, highp: true });
+      }
+    }
+  });
+
   it("names no GLSL built-in as a variable", () => {
     for (const name of ["step", "smooth", "filter", "active", "input", "output", "sample"]) {
       expect(PASS_GLSL).not.toMatch(new RegExp(`\\b(int|float|vec2|vec4|ivec2)\\s+${name}\\b`));

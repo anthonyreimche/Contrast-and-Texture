@@ -1,7 +1,7 @@
 {
   "name": "safelight-contrast-texture",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Contrast & Texture extension for Safelight: darktable's scene-referred local contrast.",
   "type": "module",
   "scripts": {

@@ -1,7 +1,7 @@
 {
   "id": "contrast-texture",
   "name": "Contrast & Texture",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Scene-referred local contrast: coarse, medium and fine detail sliders, with shadows and highlights at the base detail size, over a cascade of edge-aware filters that holds edges without halos.",
   "author": "Anthony Reimche",
   "main": "dist/index.js",

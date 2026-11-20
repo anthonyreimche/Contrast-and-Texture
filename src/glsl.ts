@@ -37,8 +37,9 @@ export const STAT_SCALE = 8;
 
 export const PASS_HELPERS = `
 vec4 ctxAt(ivec2 t) { return fetchPrev4(t); }
-// 2^-n for a whole n, exactly, whatever the driver's exp2.
-float ctxPow2(int n) { return intBitsToFloat((127 - n) << 23); }
+// 2^-n for a whole n, exactly, whatever the driver's exp2. highp: the
+// programs' ints are mediump, 16 bits on a driver that honours it.
+float ctxPow2(highp int n) { return intBitsToFloat((127 - n) << 23); }
 // The statistics as stored (y as a signed square root) and as summed.
 vec2 ctxDecode(vec2 s) { return vec2(s.x, s.y * abs(s.y)); }
 vec2 ctxEncode(vec2 v) { return vec2(v.x, sign(v.y) * sqrt(abs(v.y))); }
