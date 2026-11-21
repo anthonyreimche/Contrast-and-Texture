@@ -36,6 +36,10 @@ const NORM_MIN = lit(2 ** -16);
 export const STAT_SCALE = 8;
 
 export const PASS_HELPERS = `
+// Every int below is highp: the programs' ints are mediump, 16 bits on a driver
+// that honours it (Mesa), which wraps 3 * ds.x and 1 << 3j and rounds float(n)
+// above 2048.
+precision highp int;
 vec4 ctxAt(ivec2 t) { return fetchPrev4(t); }
 // 2^-n for a whole n, exactly, whatever the driver's exp2. highp: the
 // programs' ints are mediump, 16 bits on a driver that honours it.

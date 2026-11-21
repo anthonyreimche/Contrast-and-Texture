@@ -93,6 +93,14 @@ describe("a draw's cost", () => {
     }
   });
 
+  // Mediump ints wrap past 32767 and float(int) rounds above 2048 on Mesa: the
+  // pass's schedule, taps and 1 << 3j strides read sizes of thousands of pixels.
+  // One precision lead covers the helpers and the pass body that follows them.
+  it("makes every int in the pass highp, and nothing inline", () => {
+    expect(PASS_HELPERS.replace(/\/\/.*/g, "").trimStart()).toMatch(/^precision highp int;/);
+    for (const src of [INLINE_GLSL, REGION_GLSL]) expect(src).not.toMatch(/precision\s+highp\s+int/);
+  });
+
   it("names no GLSL built-in as a variable", () => {
     for (const name of ["step", "smooth", "filter", "active", "input", "output", "sample"]) {
       expect(PASS_GLSL).not.toMatch(new RegExp(`\\b(int|float|vec2|vec4|ivec2)\\s+${name}\\b`));

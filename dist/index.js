@@ -213,6 +213,10 @@ function R(e) {
 	return t.includes(".") ? t.replace(/0+$/, "").replace(/\.$/, ".0") : `${t}.0`;
 }
 var z = R, B = z(2 ** -16), V = `
+// Every int below is highp: the programs' ints are mediump, 16 bits on a driver
+// that honours it (Mesa), which wraps 3 * ds.x and 1 << 3j and rounds float(n)
+// above 2048.
+precision highp int;
 vec4 ctxAt(ivec2 t) { return fetchPrev4(t); }
 // 2^-n for a whole n, exactly, whatever the driver's exp2. highp: the
 // programs' ints are mediump, 16 bits on a driver that honours it.
