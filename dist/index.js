@@ -602,6 +602,7 @@ function te(e) {
 			direction: "right",
 			width: 280
 		},
+		modules: ["develop"],
 		onReset: ee,
 		mask: {
 			component: L,

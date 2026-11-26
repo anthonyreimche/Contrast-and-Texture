@@ -30,6 +30,7 @@ export function activate(host: SafelightAPI): void {
     title: "Contrast & Texture",
     component: ContrastTexturePanel,
     defaultDock: { module: "develop", direction: "right", width: 280 },
+    modules: ["develop"],
     onReset: reset,
     mask: { component: ContrastTexturePanel, owns: [...EDIT_KEYS.map(qualified), qualified(DRAWS_KEY)] },
   });
